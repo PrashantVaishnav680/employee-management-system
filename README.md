@@ -1,19 +1,77 @@
-# React + Vite
+# 🚀 EMS WorkPulse
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+EMS WorkPulse is a Full Stack Employee Management System built using the MERN Stack. It helps organizations manage employees, attendance, tasks, and leave requests through a secure role-based dashboard.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- 🔐 JWT Authentication
+- 👥 Employee Management
+- 📅 Attendance Management
+- ✅ Task Management
+- 📝 Leave Management
+- 📊 Dashboard
+- 📜 Activity Logs
+- 👤 Profile Management
 
-## React Compiler
+## 🛠️ Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Frontend**
+- React.js
+- Vite
+- Tailwind CSS
+- Axios
 
-## Expanding the Oxlint configuration
+**Backend**
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JWT
+- bcryptjs
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## 📦 Installation
 
-{ email: 'admin@ems.com', password: 'Admin@123' },
-{ email: 'aarav@ems.com', password: 'Employee@123' },
+### Clone the repository
+
+```bash
+git clone https://github.com/your-username/EMS-WorkPulse.git
+cd EMS-WorkPulse
+```
+
+### Backend
+
+```bash
+cd server
+npm install
+npm run dev
+```
+
+### Frontend
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+## 🔑 Environment Variables
+
+Create a `.env` file inside the `server` folder.
+
+```env
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_secret_key
+```
+
+## 🌟 Future Improvements
+
+- Payroll Management
+- Email Notifications
+- OTP Password Reset
+- PDF/Excel Reports
+- Employee Documents
+
+## 👨‍💻 Author
+
+**Prashant Vaishnav**
