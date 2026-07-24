@@ -19,6 +19,7 @@ import helmet from "helmet";
 
 
 dotenv.config();
+console.log("MONGODB_URI =", process.env.MONGODB_URI);
 
 const bootstrapUsers = async () => {
   const existingUsers = await User.countDocuments();
@@ -26,7 +27,7 @@ const bootstrapUsers = async () => {
 
   await User.create({
     name: "Prashant Vaishnav",
-    email: "admin@ems.com",
+    email: "Prashant@ems.com",
     password: "Admin@123",
     role: "admin",
     department: "Operations",

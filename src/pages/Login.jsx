@@ -11,7 +11,7 @@ const Login = () => {
   const navigate = useNavigate()
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
-    // defaultValues: { email: 'admin@ems.com', password: 'Admin@123' },
+    defaultValues: { email: 'Admin@ems.com', password: 'Admin@123' },
   })
 
   const onSubmit = async (values) => {
@@ -39,8 +39,8 @@ const Login = () => {
         </motion.section>
 
         <motion.form initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} onSubmit={handleSubmit(onSubmit)} className="rounded-3xl border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur">
-          <h2 className="text-3xl font-black">Login</h2>
-          <p className="mt-2 text-sm text-gray-400">Seed credentials: admin@ems.com / Admin@123</p>
+          <h2 className="text-3xl font-black text-center">Login</h2>
+          {/* <p className="mt-2 text-sm text-gray-400">Seed credentials: admin@ems.com / Admin@123</p> */}
           <label className="form-field mt-8">
             <span>Email</span>
             <input {...register('email')} placeholder="email@example.com" />
