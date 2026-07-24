@@ -54,6 +54,12 @@ app.use(morgan("dev"));
 
 app.use(helmet());
 
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "EMS Backend API is running 🚀",
+  });
+});
 app.get("/api/health", (req, res) => res.json({ status: "ok", service: "EMS API" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/employees", employeeRoutes);
