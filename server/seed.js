@@ -1,3 +1,5 @@
+// this file is only used for data in local development and testing. It will delete all existing data in the database and create a new admin user, some employees, and some tasks. Do not use this file in production.
+
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { connectDB } from "./config/db.js";
@@ -22,7 +24,7 @@ await Promise.all([
 
 const admin = await User.create({
   name: "Prashant Vaishnav",
-  email: "admin@ems.com",
+  email: "Prashant@ems.com",
   password: "Admin@123",
   role: "admin",
   department: "Operations",

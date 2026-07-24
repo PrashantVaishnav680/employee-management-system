@@ -72,6 +72,13 @@ JWT_SECRET=your_secret_key
 - PDF/Excel Reports
 - Employee Documents
 
+## Admin and Employee Data for login
+admin: Prashant@ems.com 
+pass : Admin@123
+# 1 emp
+emp  : Viransh@ems.com    
+pass : Viransh@123
+
 ## 👨‍💻 Author
 
 **Prashant Vaishnav**
