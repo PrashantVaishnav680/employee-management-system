@@ -11,7 +11,7 @@ const Login = () => {
   const navigate = useNavigate()
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: 'Admin@ems.com', password: 'Admin@123' },
+    // defaultValues: { email: 'Admin@ems.com', password: 'Admin@123' },
   })
 
   const onSubmit = async (values) => {
