@@ -24,6 +24,17 @@ const Dashboard = () => {
         <StatCard label="Tasks" value={analytics.totals.tasks} />
         <StatCard label="Leaves" value={analytics.totals.leaves} tone="sky" />
         <StatCard label="Avg Progress" value={`${analytics.totals.averageProgress}%`} tone="rose" />
+        <StatCard label="Monthly Attendance" value={`${analytics.totals.monthlyAttendancePercentage}%`} tone="amber" />
+      </div>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <section className="panel">
+          <h2 className="section-title">Leave Statistics</h2>
+          {analytics.leaveCounts.every((item) => item.value === 0) ? <p className="py-24 text-center text-gray-400">No Leave Records</p> : <ResponsiveContainer width="100%" height={260}><BarChart data={analytics.leaveCounts}><XAxis dataKey="name" stroke="#9ca3af" /><YAxis stroke="#9ca3af" /><Tooltip /><Bar dataKey="value" fill="#38bdf8" radius={[10, 10, 0, 0]} /></BarChart></ResponsiveContainer>}
+        </section>
+        <section className="panel">
+          <h2 className="section-title">Task Completion Trend</h2>
+          <ResponsiveContainer width="100%" height={260}><BarChart data={analytics.taskTrend}><XAxis dataKey="name" stroke="#9ca3af" /><YAxis stroke="#9ca3af" /><Tooltip /><Bar dataKey="value" fill="#34d399" radius={[10, 10, 0, 0]} /></BarChart></ResponsiveContainer>
+        </section>
       </div>
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="panel">

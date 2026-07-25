@@ -10,7 +10,7 @@ import { employeeSchema } from '../schemas/forms'
 const Employees = () => {
   const [employees, setEmployees] = useState([])
   const [search, setSearch] = useState('')
-  const { register, handleSubmit, reset, formState: { errors } } = useForm({ resolver: zodResolver(employeeSchema) })
+  const { register, handleSubmit, reset, formState: { errors, isValid, isSubmitting } } = useForm({ resolver: zodResolver(employeeSchema), mode: 'onChange' })
 
   const loadEmployees = useCallback(async () => {
     const { data } = await api.get('/employees', { params: { search } })
@@ -20,16 +20,14 @@ const Employees = () => {
   useEffect(() => { loadEmployees() }, [loadEmployees])
 
   const createEmployee = async (values) => {
-    await api.post('/employees', values)
-    toast.success('Employee created')
-    reset()
-    loadEmployees()
+    try { await api.post('/employees', values); toast.success('Employee created'); reset(); loadEmployees() }
+    catch (error) { toast.error(error.response?.data?.message || 'Unable to create employee') }
   }
 
   const removeEmployee = async (id) => {
-    if (!confirm('Delete this employee and related records?')) return
+    if (!confirm('Deactivate this employee? Historical records will be retained.')) return
     await api.delete(`/employees/${id}`)
-    toast.success('Employee deleted')
+    toast.success('Employee deactivated')
     loadEmployees()
   }
 
@@ -159,8 +157,8 @@ const Employees = () => {
             )}
           </label>
 
-          <button className="self-end rounded-2xl bg-emerald-400 px-5 py-3 font-black text-slate-950">
-            Add Employee
+          <button disabled={!isValid || isSubmitting} className="self-end rounded-2xl bg-emerald-400 px-5 py-3 font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">
+            {isSubmitting ? 'Adding...' : 'Add Employee'}
           </button>
         </form>
       </section>

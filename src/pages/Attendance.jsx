@@ -4,13 +4,14 @@ import api from '../api/client'
 import EmptyState from '../components/common/EmptyState'
 import PageHeader from '../components/common/PageHeader'
 import { useAuth } from '../hooks/useAuth'
+import { todayInputValue } from '../utils/date'
 
 const Attendance = () => {
   const { user } = useAuth()
 
   const [records, setRecords] = useState([])
   const [employees, setEmployees] = useState([])
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10))
+  const [selectedDate, setSelectedDate] = useState(todayInputValue())
   const [attendanceData, setAttendanceData] = useState([])
 
   const isAdmin = user.role === 'admin'
@@ -80,6 +81,12 @@ const Attendance = () => {
       )
     }
   }
+  const sendReminders = async () => {
+    try {
+      const { data } = await api.post('/attendance/reminders', { date: selectedDate })
+      toast.success(data.message)
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to send reminders') }
+  }
 
   return (
   <>
@@ -105,6 +112,10 @@ const Attendance = () => {
           </div>
 
           <div className="flex gap-3">
+
+            <button type="button" onClick={sendReminders} className="secondary-button">
+              Send Reminders
+            </button>
 
             <button
               type="button"
@@ -216,7 +227,7 @@ const Attendance = () => {
 
       {!records.length ? (
 
-        <EmptyState />
+        <EmptyState title="No Attendance Found" description="Attendance records will appear here after they are submitted." />
 
       ) : (
 

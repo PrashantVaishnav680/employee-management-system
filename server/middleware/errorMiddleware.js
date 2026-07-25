@@ -5,6 +5,9 @@ export const notFound = (req, res, next) => {
 };
 
 export const errorHandler = (error, req, res) => {
+  if (error?.code === 11000) {
+    return res.status(409).json({ message: "A record with this value already exists" });
+  }
   const statusCode = res.statusCode === 200 ? error.statusCode || 500 : res.statusCode;
   res.status(statusCode).json({
     message: error.message || "Server error",

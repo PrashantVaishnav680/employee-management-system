@@ -14,6 +14,9 @@ const userSchema = new mongoose.Schema(
     avatar: { type: String, default: "" },
     status: { type: String, enum: ["active", "inactive"], default: "active" },
     joinedAt: { type: Date, default: Date.now },
+    // Replaced on every login so a user can have only one valid JWT at a time.
+    sessionId: { type: String, default: null, select: false },
+    sessionStartedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

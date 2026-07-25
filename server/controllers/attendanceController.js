@@ -1,5 +1,8 @@
 import Attendance from "../models/Attendance.js";
 import { logActivity } from "../utils/logActivity.js";
+import { isBeforeToday, startOfDay } from "../utils/date.js";
+import User from "../models/User.js";
+import { notifyUser } from "../utils/notify.js";
 
 export const getAttendance = async (req, res, next) => {
   try {
@@ -15,9 +18,17 @@ export const getAttendance = async (req, res, next) => {
 export const upsertAttendance = async (req, res, next) => {
   try {
     const employee = req.user.role === "admin" ? req.body.employee : req.user._id;
+    const attendanceDate = startOfDay(req.body.date);
+    if (!attendanceDate) { res.status(400); throw new Error("A valid attendance date is required"); }
+    if (req.user.role !== "admin" && isBeforeToday(attendanceDate)) {
+      res.status(400); throw new Error("Employees can only mark attendance for today or future dates");
+    }
+    if (req.user.role !== "admin" && await Attendance.exists({ employee, date: attendanceDate })) {
+      res.status(409); throw new Error("Attendance has already been marked for this date");
+    }
     const record = await Attendance.findOneAndUpdate(
-      { employee, date: new Date(req.body.date).setHours(0, 0, 0, 0) },
-      { ...req.body, employee, date: new Date(req.body.date).setHours(0, 0, 0, 0) },
+      { employee, date: attendanceDate },
+      { ...req.body, employee, date: attendanceDate },
       { new: true, upsert: true, runValidators: true }
     ).populate("employee", "name email department");
 
@@ -38,8 +49,8 @@ export const bulkAttendance = async (req, res, next) => {
       });
     }
 
-    const attendanceDate = new Date(date);
-    attendanceDate.setHours(0, 0, 0, 0);
+    const attendanceDate = startOfDay(date);
+    if (!attendanceDate) return res.status(400).json({ message: "A valid attendance date is required" });
 
     // Check if today's attendance is already locked
     const lockedCount = await Attendance.countDocuments({
@@ -122,4 +133,18 @@ export const unlockAttendance = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+export const sendAttendanceReminders = async (req, res, next) => {
+  try {
+    const date = startOfDay(req.body.date || new Date());
+    const marked = await Attendance.find({ date }).distinct("employee");
+    const employees = await User.find({ role: "employee", status: "active", _id: { $nin: marked } }).select("_id");
+    await Promise.all(employees.map((employee) => notifyUser({
+      user: employee._id,
+      title: "Attendance reminder",
+      message: `Please mark your attendance for ${date.toLocaleDateString()}.`,
+    })));
+    res.json({ message: `Reminder sent to ${employees.length} employee(s)` });
+  } catch (error) { next(error); }
 };

@@ -1,13 +1,13 @@
 import jwt from "jsonwebtoken";
 
-export const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+export const signToken = (id, sessionId) => {
+  return jwt.sign({ id, sessionId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 };
 
 export const sendToken = (res, user, statusCode = 200) => {
-  const token = signToken(user._id);
+  const token = signToken(user._id, user.sessionId);
 
   res.cookie("token", token, {
     httpOnly: true,

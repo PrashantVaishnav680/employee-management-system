@@ -1,6 +1,7 @@
 import Leave from "../models/Leave.js";
 import { logActivity } from "../utils/logActivity.js";
 import { notifyUser } from "../utils/notify.js";
+import { isBeforeToday, startOfDay } from "../utils/date.js";
 
 export const getLeaves = async (req, res, next) => {
   try {
@@ -17,7 +18,24 @@ export const getLeaves = async (req, res, next) => {
 
 export const createLeave = async (req, res, next) => {
   try {
-    const leave = await Leave.create({ ...req.body, employee: req.user._id });
+    const fromDate = startOfDay(req.body.fromDate);
+    const toDate = startOfDay(req.body.toDate);
+    if (!fromDate || !toDate || isBeforeToday(fromDate) || isBeforeToday(toDate)) {
+      res.status(400); throw new Error("Leave dates must be today or in the future");
+    }
+    if (toDate < fromDate) {
+      res.status(400); throw new Error("To date cannot be before from date");
+    }
+    const duplicate = await Leave.exists({
+      employee: req.user._id,
+      status: { $in: ["Pending", "Approved"] },
+      fromDate: { $lte: toDate },
+      toDate: { $gte: fromDate },
+    });
+    if (duplicate) {
+      res.status(409); throw new Error("You already have a pending or approved leave for one of these dates");
+    }
+    const leave = await Leave.create({ ...req.body, fromDate, toDate, employee: req.user._id });
     await logActivity({ actor: req.user._id, action: "REQUEST_LEAVE", entity: "Leave", entityId: leave._id });
     res.status(201).json(leave);
   } catch (error) {

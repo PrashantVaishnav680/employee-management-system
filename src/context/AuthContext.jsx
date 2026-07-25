@@ -49,6 +49,25 @@ export const AuthProvider = ({ children }) => {
     refreshMe()
   }, [])
 
+  useEffect(() => {
+    const token = localStorage.getItem('ems_token')
+    if (!token) return undefined
+    try {
+      const [, payload] = token.split('.')
+      const { exp } = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+      const remaining = exp * 1000 - Date.now()
+      if (remaining <= 0) {
+        localStorage.removeItem('ems_token'); localStorage.removeItem('ems_user'); setUser(null)
+        return undefined
+      }
+      const timeout = setTimeout(() => {
+        localStorage.removeItem('ems_token'); localStorage.removeItem('ems_user'); setUser(null)
+        window.location.assign('/login')
+      }, remaining)
+      return () => clearTimeout(timeout)
+    } catch { return undefined }
+  }, [user])
+
   const value = useMemo(() => ({ user, loading, login, logout, refreshMe }), [user, loading])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

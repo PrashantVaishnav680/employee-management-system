@@ -7,6 +7,7 @@ import EmptyState from '../components/common/EmptyState'
 import PageHeader from '../components/common/PageHeader'
 import { useAuth } from '../hooks/useAuth'
 import { taskSchema } from '../schemas/forms'
+import { todayInputValue } from '../utils/date'
 
 const statuses = ['New', 'Active', 'Completed', 'Failed']
 
@@ -16,7 +17,7 @@ const Tasks = () => {
   const [employees, setEmployees] = useState([])
   const [status, setStatus] = useState('')
   const [search, setSearch] = useState('')
-  const { register, handleSubmit, reset, formState: { errors } } = useForm({ resolver: zodResolver(taskSchema), defaultValues: { priority: 'Medium' } })
+  const { register, handleSubmit, reset, formState: { errors, isValid, isSubmitting } } = useForm({ resolver: zodResolver(taskSchema), defaultValues: { priority: 'Medium' }, mode: 'onChange' })
   const isAdmin = user.role === 'admin'
 
   const load = useCallback(async () => {
@@ -31,10 +32,8 @@ const Tasks = () => {
   useEffect(() => { load() }, [load])
 
   const createTask = async (values) => {
-    await api.post('/tasks', values)
-    toast.success('Task assigned')
-    reset({ priority: 'Medium' })
-    load()
+    try { await api.post('/tasks', values); toast.success('Task assigned'); reset({ priority: 'Medium' }); load() }
+    catch (error) { toast.error(error.response?.data?.message || 'Unable to assign task') }
   }
 
   const updateTask = async (task, updates) => {
@@ -59,13 +58,13 @@ const Tasks = () => {
         <section className="panel">
           <form onSubmit={handleSubmit(createTask)} className="grid gap-4 md:grid-cols-3">
             <label className="form-field"><span>Title</span><input {...register('title')} />{errors.title ? <small className="text-rose-300">{errors.title.message}</small> : null}</label>
-            <label className="form-field"><span>Due Date</span><input type="date" {...register('dueDate')} />{errors.dueDate ? <small className="text-rose-300">{errors.dueDate.message}</small> : null}</label>
+            <label className="form-field"><span>Due Date</span><input type="date" min={todayInputValue()} {...register('dueDate')} />{errors.dueDate ? <small className="text-rose-300">{errors.dueDate.message}</small> : null}</label>
             <label className="form-field"><span>Assign To</span><select {...register('assignedTo')}><option value="">Select</option>{employees.map((employee) => <option key={employee._id} value={employee._id}>{employee.name}</option>)}</select>{errors.assignedTo ? <small className="text-rose-300">{errors.assignedTo.message}</small> : null}</label>
             <label className="form-field"><span>Category</span><input {...register('category')} /></label>
             <label className="form-field"><span>Priority</span><select {...register('priority')}><option>Low</option><option>Medium</option><option>High</option></select></label>
             <label className="form-field"><span>Estimated Hours</span><input type="number" step="0.5" {...register('estimatedHours')} /></label>
             <label className="form-field md:col-span-3"><span>Description</span><textarea {...register('description')} className="min-h-24 resize-none" /></label>
-            <button className="rounded-2xl bg-emerald-400 px-5 py-3 font-black text-slate-950">Create Task</button>
+            <button disabled={!isValid || isSubmitting} className="rounded-2xl bg-emerald-400 px-5 py-3 font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{isSubmitting ? 'Creating...' : 'Create Task'}</button>
           </form>
         </section>
       ) : null}
@@ -75,7 +74,7 @@ const Tasks = () => {
           <select className="table-input" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All statuses</option>{statuses.map((item) => <option key={item}>{item}</option>)}</select>
           <button onClick={load} className="secondary-button">Apply</button>
         </div>
-        {!filteredTasks.length ? <EmptyState /> : (
+        {!filteredTasks.length ? <EmptyState title="No Tasks Available" description="New or assigned tasks will appear here." /> : (
           <div className="grid gap-4 xl:grid-cols-2">
             {filteredTasks.map((task) => (
               <article key={task._id} className="rounded-3xl border border-white/10 bg-black/20 p-5">

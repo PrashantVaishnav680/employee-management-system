@@ -262,6 +262,14 @@ select {
   animation: slide-up 520ms ease both;
 }
 
+@media (max-width: 767px) {
+  .panel { padding: 16px; border-radius: 18px; }
+  .stat-card { padding: 18px; }
+  .stat-card h2 { font-size: 32px; }
+  .section-title { font-size: 19px; }
+  input, select, textarea { min-width: 0; }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

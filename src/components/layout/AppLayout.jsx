@@ -38,6 +38,7 @@ const AppLayout = () => {
           ))}
         </nav>
       </aside>
+      {open ? <button aria-label="Close navigation" className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setOpen(false)} /> : null}
 
       <div className="md:pl-72">
         <header className="sticky top-0 z-30 border-b border-white/10 bg-[#081018]/80 px-4 py-4 backdrop-blur md:px-8">
@@ -47,7 +48,7 @@ const AppLayout = () => {
               <p className="text-sm text-gray-400">Signed in as</p>
               <h2 className="font-bold">{user.name} <span className="text-emerald-300">({user.role})</span></h2>
             </div>
-            <button onClick={logout} className="flex items-center gap-2 rounded-2xl bg-rose-500 px-4 py-3 text-sm font-bold transition hover:bg-rose-400">
+            <button onClick={logout} className="flex shrink-0 items-center gap-2 rounded-2xl bg-rose-500 px-3 py-3 text-sm font-bold transition hover:bg-rose-400 md:px-4">
               <LogOut size={16} /> Logout
             </button>
           </div>

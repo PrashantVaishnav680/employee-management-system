@@ -7,11 +7,12 @@ import EmptyState from '../components/common/EmptyState'
 import PageHeader from '../components/common/PageHeader'
 import { useAuth } from '../hooks/useAuth'
 import { leaveSchema } from '../schemas/forms'
+import { todayInputValue } from '../utils/date'
 
 const Leaves = () => {
   const { user } = useAuth()
   const [leaves, setLeaves] = useState([])
-  const { register, handleSubmit, reset, formState: { errors } } = useForm({ resolver: zodResolver(leaveSchema), defaultValues: { type: 'Casual' } })
+  const { register, handleSubmit, reset, formState: { errors, isValid, isSubmitting } } = useForm({ resolver: zodResolver(leaveSchema), defaultValues: { type: 'Casual' }, mode: 'onChange' })
   const isAdmin = user.role === 'admin'
 
   const load = async () => {
@@ -22,10 +23,12 @@ const Leaves = () => {
   useEffect(() => { load() }, [])
 
   const requestLeave = async (values) => {
-    await api.post('/leaves', values)
-    toast.success('Leave requested')
-    reset({ type: 'Casual' })
-    load()
+    try {
+      await api.post('/leaves', values)
+      reset({ type: 'Casual' })
+      await load()
+      toast.success('Leave requested successfully')
+    } catch (error) { toast.error(error.response?.data?.message || 'Unable to request leave') }
   }
 
   const review = async (id, status) => {
@@ -41,15 +44,15 @@ const Leaves = () => {
         <section className="panel">
           <form onSubmit={handleSubmit(requestLeave)} className="grid gap-4 md:grid-cols-2">
             <label className="form-field"><span>Type</span><select {...register('type')}><option>Casual</option><option>Sick</option><option>Earned</option><option>Unpaid</option></select></label>
-            <label className="form-field"><span>From</span><input type="date" {...register('fromDate')} />{errors.fromDate ? <small className="text-rose-300">{errors.fromDate.message}</small> : null}</label>
-            <label className="form-field"><span>To</span><input type="date" {...register('toDate')} />{errors.toDate ? <small className="text-rose-300">{errors.toDate.message}</small> : null}</label>
+            <label className="form-field"><span>From</span><input type="date" min={todayInputValue()} {...register('fromDate')} />{errors.fromDate ? <small className="text-rose-300">{errors.fromDate.message}</small> : null}</label>
+            <label className="form-field"><span>To</span><input type="date" min={todayInputValue()} {...register('toDate')} />{errors.toDate ? <small className="text-rose-300">{errors.toDate.message}</small> : null}</label>
             <label className="form-field"><span>Reason</span><input {...register('reason')} />{errors.reason ? <small className="text-rose-300">{errors.reason.message}</small> : null}</label>
-            <button className="rounded-2xl bg-emerald-400 px-5 py-3 font-black text-slate-950">Request Leave</button>
+            <button disabled={!isValid || isSubmitting} className="rounded-2xl bg-emerald-400 px-5 py-3 font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{isSubmitting ? 'Requesting...' : 'Request Leave'}</button>
           </form>
         </section>
       ) : null}
       <section className="panel mt-6">
-        {!leaves.length ? <EmptyState /> : leaves.map((leave) => (
+        {!leaves.length ? <EmptyState title="No Leave Records" description="Your leave requests will appear here." /> : leaves.map((leave) => (
           <div key={leave._id} className="mb-3 grid gap-3 rounded-2xl border border-white/10 bg-black/20 p-4 md:grid-cols-[1fr_1fr_1fr_auto]">
             <div><strong>{leave.employee?.name}</strong><p className="text-sm text-gray-400">{leave.reason}</p></div>
             <span>{new Date(leave.fromDate).toLocaleDateString()} - {new Date(leave.toDate).toLocaleDateString()}</span>

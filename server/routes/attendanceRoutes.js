@@ -4,6 +4,7 @@ import {
   upsertAttendance,
   bulkAttendance,
   unlockAttendance,
+  sendAttendanceReminders,
 } from "../controllers/attendanceController.js";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 
@@ -26,5 +27,6 @@ router.patch(
   authorize("admin"),
   unlockAttendance
 );
+router.post("/reminders", protect, authorize("admin"), sendAttendanceReminders);
 
 export default router;

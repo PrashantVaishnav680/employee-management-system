@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import api from '../api/client'
@@ -8,6 +9,7 @@ import { passwordSchema } from '../schemas/forms'
 
 const Profile = () => {
   const { user, refreshMe } = useAuth()
+  const [sessions, setSessions] = useState([])
   const { register, handleSubmit, reset, formState: { errors } } = useForm({ resolver: zodResolver(passwordSchema) })
 
   const changePassword = async (values) => {
@@ -22,6 +24,18 @@ const Profile = () => {
     await api.patch('/employees/profile', Object.fromEntries(form.entries()))
     toast.success('Profile updated')
     refreshMe()
+  }
+
+  useEffect(() => {
+    api.get('/auth/sessions').then(({ data }) => setSessions(data)).catch(() => null)
+  }, [])
+
+  const signOutEverywhere = async () => {
+    try {
+      await api.post('/auth/sessions/revoke')
+      toast.info('All active sessions have been revoked')
+      window.location.assign('/login')
+    } catch (error) { toast.error(error.response?.data?.message || 'Unable to revoke sessions') }
   }
 
   return (
@@ -47,6 +61,21 @@ const Profile = () => {
           </form>
         </section>
       </div>
+      <section className="panel mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><h2 className="section-title mb-1">Login History</h2><p className="text-sm text-gray-400">Your latest sign-ins and the currently active session.</p></div>
+          <button onClick={signOutEverywhere} className="danger-button">Sign out everywhere</button>
+        </div>
+        <div className="mt-4 space-y-3">
+          {!sessions.length ? <p className="text-sm text-gray-400">No login history available yet.</p> : sessions.map((session) => (
+            <div key={session._id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-black/20 p-3 text-sm">
+              <span className="max-w-full truncate text-gray-300">{session.device}</span>
+              <span>{new Date(session.loginAt).toLocaleString()}</span>
+              <span className={session.active ? 'text-emerald-300' : 'text-gray-400'}>{session.active ? 'Active now' : `Ended ${session.logoutAt ? new Date(session.logoutAt).toLocaleString() : ''}`}</span>
+            </div>
+          ))}
+        </div>
+      </section>
     </>
   )
 }

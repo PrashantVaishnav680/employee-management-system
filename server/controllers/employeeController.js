@@ -7,8 +7,8 @@ import { logActivity } from "../utils/logActivity.js";
 export const getEmployees = async (req, res, next) => {
   try {
     const query = req.query.search
-      ? { role: "employee", name: { $regex: req.query.search, $options: "i" } }
-      : { role: "employee" };
+      ? { role: "employee", status: "active", name: { $regex: req.query.search, $options: "i" } }
+      : { role: "employee", status: "active" };
     const employees = await User.find(query).sort({ createdAt: -1 });
     res.json(employees);
   } catch (error) {
@@ -94,12 +94,12 @@ export const deleteEmployee = async (req, res, next) => {
       throw new Error("Employee not found");
     }
 
-    await Task.deleteMany({ assignedTo: employee._id });
-    await Attendance.deleteMany({ employee: employee._id });
-    await Leave.deleteMany({ employee: employee._id });
-    await employee.deleteOne();
-    await logActivity({ actor: req.user._id, action: "DELETE_EMPLOYEE", entity: "User", entityId: employee._id, details: employee.name });
-    res.json({ message: "Employee deleted successfully" });
+    employee.status = "inactive";
+    employee.sessionId = null;
+    employee.sessionStartedAt = null;
+    await employee.save({ validateBeforeSave: false });
+    await logActivity({ actor: req.user._id, action: "DEACTIVATE_EMPLOYEE", entity: "User", entityId: employee._id, details: employee.name });
+    res.json({ message: "Employee deactivated successfully. Historical records were retained." });
   } catch (error) {
     next(error);
   }

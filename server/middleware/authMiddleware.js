@@ -14,11 +14,11 @@ export const protect = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select("-password");
+    const user = await User.findById(decoded.id).select("-password +sessionId");
 
-    if (!user || user.status !== "active") {
+    if (!user || user.status !== "active" || !decoded.sessionId || user.sessionId !== decoded.sessionId) {
       res.status(401);
-      throw new Error("Not authorized");
+      throw new Error("Your session has expired or was signed in elsewhere");
     }
 
     req.user = user;
