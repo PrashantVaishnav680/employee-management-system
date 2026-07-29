@@ -49,10 +49,19 @@ export const updateTask = async (req, res, next) => {
       throw new Error("Not allowed to update this task");
     }
 
-    Object.assign(task, req.body);
-    if (req.body.dueDate && isBeforeToday(req.body.dueDate)) {
+    const allowedFields = req.user.role === "admin"
+      ? ["title", "description", "category", "priority", "status", "dueDate", "estimatedHours", "actualHours", "progress", "remarks", "attachmentUrl", "assignedTo"]
+      : ["status", "progress", "actualHours", "remarks"];
+    const updates = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowedFields.includes(key)));
+
+    if (!Object.keys(updates).length) {
+      res.status(400);
+      throw new Error("No permitted task fields were provided");
+    }
+    if (updates.dueDate && isBeforeToday(updates.dueDate)) {
       res.status(400); throw new Error("Task due date must be today or in the future");
     }
+    Object.assign(task, updates);
     if (task.status === "Completed") task.progress = 100;
     if (task.status === "New") task.progress = 0;
     await task.save();

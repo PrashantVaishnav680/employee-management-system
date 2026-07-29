@@ -19,7 +19,6 @@ import helmet from "helmet";
 
 
 dotenv.config();
-console.log("MONGODB_URI =", process.env.MONGODB_URI);
 
 const bootstrapUsers = async () => {
   const existingUsers = await User.countDocuments();

@@ -1,7 +1,4 @@
 import User from "../models/User.js";
-import Task from "../models/Task.js";
-import Attendance from "../models/Attendance.js";
-import Leave from "../models/Leave.js";
 import { logActivity } from "../utils/logActivity.js";
 
 export const getEmployees = async (req, res, next) => {

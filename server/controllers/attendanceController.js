@@ -52,6 +52,25 @@ export const bulkAttendance = async (req, res, next) => {
     const attendanceDate = startOfDay(date);
     if (!attendanceDate) return res.status(400).json({ message: "A valid attendance date is required" });
 
+    const validStatuses = new Set(["Present", "Absent", "Half Day", "Remote"]);
+    const employeeIds = attendance.map((item) => String(item.employee));
+    if (
+      employeeIds.some((id) => !/^[a-f\d]{24}$/i.test(id)) ||
+      new Set(employeeIds).size !== employeeIds.length ||
+      attendance.some((item) => !validStatuses.has(item.status))
+    ) {
+      return res.status(400).json({ message: "Attendance must contain unique active employees with valid statuses" });
+    }
+
+    const activeEmployees = await User.find({
+      _id: { $in: employeeIds },
+      role: "employee",
+      status: "active",
+    }).select("_id").lean();
+    if (activeEmployees.length !== employeeIds.length) {
+      return res.status(400).json({ message: "Attendance contains an invalid or inactive employee" });
+    }
+
     // Check if today's attendance is already locked
     const lockedCount = await Attendance.countDocuments({
       date: attendanceDate,

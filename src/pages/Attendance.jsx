@@ -10,7 +10,6 @@ const Attendance = () => {
   const { user } = useAuth()
 
   const [records, setRecords] = useState([])
-  const [employees, setEmployees] = useState([])
   const [selectedDate, setSelectedDate] = useState(todayInputValue())
   const [attendanceData, setAttendanceData] = useState([])
 
@@ -23,8 +22,6 @@ const Attendance = () => {
     ])
 
     setRecords(attendanceRecords)
-    setEmployees(employeeResult.data)
-
     if (isAdmin) {
       setAttendanceData(
         employeeResult.data.map((emp) => ({

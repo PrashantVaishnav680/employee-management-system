@@ -3,9 +3,19 @@ import { toast } from 'react-toastify'
 import api from '../api/client'
 import { AuthContext } from './auth-context'
 
+const getStoredUser = () => {
+  try {
+    const storedUser = localStorage.getItem('ems_user')
+    return storedUser ? JSON.parse(storedUser) : null
+  } catch {
+    localStorage.removeItem('ems_user')
+    return null
+  }
+}
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('ems_user')) || null)
-  const [loading, setLoading] = useState(false)
+  const [user, setUser] = useState(getStoredUser)
+  const [loading, setLoading] = useState(true)
 
   const login = async (values) => {
     setLoading(true)
@@ -33,7 +43,10 @@ export const AuthProvider = ({ children }) => {
   }
 
   const refreshMe = async () => {
-    if (!localStorage.getItem('ems_token')) return
+    if (!localStorage.getItem('ems_token')) {
+      setLoading(false)
+      return
+    }
     try {
       const { data } = await api.get('/auth/me')
       localStorage.setItem('ems_user', JSON.stringify(data))
@@ -42,6 +55,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('ems_token')
       localStorage.removeItem('ems_user')
       setUser(null)
+    } finally {
+      setLoading(false)
     }
   }
 
