@@ -16,8 +16,9 @@ export const sendToken = (res, user, statusCode = 200) => {
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
+  // Token is sent ONLY as an HttpOnly cookie — never in the response body.
+  // This prevents XSS token theft and prevents sharing the same token between users.
   res.status(statusCode).json({
-    token,
     user: {
       id: user._id,
       name: user.name,

@@ -21,10 +21,12 @@ export const createLeave = async (req, res, next) => {
     const fromDate = startOfDay(req.body.fromDate);
     const toDate = startOfDay(req.body.toDate);
     if (!fromDate || !toDate || isBeforeToday(fromDate) || isBeforeToday(toDate)) {
-      res.status(400); throw new Error("Leave dates must be today or in the future");
+      res.status(400);
+      throw new Error("Leave dates must be today or in the future");
     }
     if (toDate < fromDate) {
-      res.status(400); throw new Error("To date cannot be before from date");
+      res.status(400);
+      throw new Error("To date cannot be before from date");
     }
     const duplicate = await Leave.exists({
       employee: req.user._id,
@@ -33,10 +35,16 @@ export const createLeave = async (req, res, next) => {
       toDate: { $gte: fromDate },
     });
     if (duplicate) {
-      res.status(409); throw new Error("You already have a pending or approved leave for one of these dates");
+      res.status(409);
+      throw new Error("You already have a pending or approved leave for one of these dates");
     }
     const leave = await Leave.create({ ...req.body, fromDate, toDate, employee: req.user._id });
-    await logActivity({ actor: req.user._id, action: "REQUEST_LEAVE", entity: "Leave", entityId: leave._id });
+    await logActivity({
+      actor: req.user._id,
+      action: "REQUEST_LEAVE",
+      entity: "Leave",
+      entityId: leave._id,
+    });
     res.status(201).json(leave);
   } catch (error) {
     next(error);
@@ -45,17 +53,33 @@ export const createLeave = async (req, res, next) => {
 
 export const reviewLeave = async (req, res, next) => {
   try {
-    const leave = await Leave.findByIdAndUpdate(
-      req.params.id,
-      { status: req.body.status, reviewedBy: req.user._id },
-      { new: true, runValidators: true }
-    ).populate("employee", "name email");
+    // Only allow reviewing leaves that are still Pending
+    const leave = await Leave.findById(req.params.id).populate("employee", "name email");
     if (!leave) {
       res.status(404);
       throw new Error("Leave request not found");
     }
-    await notifyUser({ user: leave.employee._id, title: "Leave request updated", message: `Your leave was ${leave.status}` });
-    await logActivity({ actor: req.user._id, action: "REVIEW_LEAVE", entity: "Leave", entityId: leave._id, details: leave.status });
+    if (leave.status !== "Pending") {
+      res.status(409);
+      throw new Error(`Cannot review a leave that is already ${leave.status}`);
+    }
+
+    leave.status = req.body.status;
+    leave.reviewedBy = req.user._id;
+    await leave.save({ runValidators: true });
+
+    await notifyUser({
+      user: leave.employee._id,
+      title: "Leave request updated",
+      message: `Your leave was ${leave.status}`,
+    });
+    await logActivity({
+      actor: req.user._id,
+      action: "REVIEW_LEAVE",
+      entity: "Leave",
+      entityId: leave._id,
+      details: leave.status,
+    });
     res.json(leave);
   } catch (error) {
     next(error);

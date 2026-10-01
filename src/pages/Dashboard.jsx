@@ -1,24 +1,44 @@
 import { useEffect, useState } from 'react'
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import {
+  Bar, BarChart, CartesianGrid, Cell, Pie, PieChart,
+  ResponsiveContainer, Tooltip, XAxis, YAxis,
+} from 'recharts'
 import api from '../api/client'
 import Loading from '../components/common/Loading'
 import PageHeader from '../components/common/PageHeader'
 import StatCard from '../components/common/StatCard'
 
-const colors = ['#f59e0b', '#38bdf8', '#34d399', '#fb7185']
+const PIE_COLORS = ['#f59e0b', '#38bdf8', '#34d399', '#fb7185']
 
 const Dashboard = () => {
   const [analytics, setAnalytics] = useState(null)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    api.get('/analytics').then(({ data }) => setAnalytics(data))
+    api
+      .get('/analytics')
+      .then(({ data }) => setAnalytics(data))
+      .catch(() => setError('Failed to load analytics. Please refresh the page.'))
   }, [])
+
+  if (error) {
+    return (
+      <div className="flex min-h-64 items-center justify-center rounded-3xl border border-rose-500/30 bg-rose-500/10 p-8 text-center">
+        <p className="text-rose-300">{error}</p>
+      </div>
+    )
+  }
 
   if (!analytics) return <Loading />
 
   return (
     <>
-      <PageHeader eyebrow="Overview" title="Dashboard Analytics" description="Track workload, progress, attendance, leave volume, and team health from one place." />
+      <PageHeader
+        eyebrow="Overview"
+        title="Dashboard Analytics"
+        description="Track workload, progress, attendance, leave volume, and team health from one place."
+      />
+
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard label="Employees" value={analytics.totals.employees} tone="amber" />
         <StatCard label="Tasks" value={analytics.totals.tasks} />
@@ -26,28 +46,52 @@ const Dashboard = () => {
         <StatCard label="Avg Progress" value={`${analytics.totals.averageProgress}%`} tone="rose" />
         <StatCard label="Monthly Attendance" value={`${analytics.totals.monthlyAttendancePercentage}%`} tone="amber" />
       </div>
+
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="panel">
           <h2 className="section-title">Leave Statistics</h2>
-          {analytics.leaveCounts.every((item) => item.value === 0) ? <p className="py-24 text-center text-gray-400">No Leave Records</p> : <ResponsiveContainer width="100%" height={260}><BarChart data={analytics.leaveCounts}><XAxis dataKey="name" stroke="#9ca3af" /><YAxis stroke="#9ca3af" /><Tooltip /><Bar dataKey="value" fill="#38bdf8" radius={[10, 10, 0, 0]} /></BarChart></ResponsiveContainer>}
+          {analytics.leaveCounts.every((item) => item.value === 0) ? (
+            <p className="py-24 text-center text-gray-400">No Leave Records</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={analytics.leaveCounts}>
+                <XAxis dataKey="name" stroke="#9ca3af" />
+                <YAxis stroke="#9ca3af" />
+                <Tooltip />
+                <Bar dataKey="value" fill="#38bdf8" radius={[10, 10, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </section>
+
         <section className="panel">
           <h2 className="section-title">Task Completion Trend</h2>
-          <ResponsiveContainer width="100%" height={260}><BarChart data={analytics.taskTrend}><XAxis dataKey="name" stroke="#9ca3af" /><YAxis stroke="#9ca3af" /><Tooltip /><Bar dataKey="value" fill="#34d399" radius={[10, 10, 0, 0]} /></BarChart></ResponsiveContainer>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={analytics.taskTrend}>
+              <XAxis dataKey="name" stroke="#9ca3af" />
+              <YAxis stroke="#9ca3af" />
+              <Tooltip />
+              <Bar dataKey="value" fill="#34d399" radius={[10, 10, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </section>
       </div>
+
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="panel">
           <h2 className="section-title">Tasks by Status</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie data={analytics.statusCounts} dataKey="value" nameKey="name" outerRadius={110} label>
-                {analytics.statusCounts.map((entry, index) => <Cell key={entry.name} fill={colors[index]} />)}
+                {analytics.statusCounts.map((entry, index) => (
+                  <Cell key={entry.name} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                ))}
               </Pie>
               <Tooltip />
             </PieChart>
           </ResponsiveContainer>
         </section>
+
         <section className="panel">
           <h2 className="section-title">Attendance Summary</h2>
           <ResponsiveContainer width="100%" height={300}>

@@ -1,59 +1,161 @@
-import Task from "../models/Task.js";
-import User from "../models/User.js";
 import Attendance from "../models/Attendance.js";
 import Leave from "../models/Leave.js";
+import Task from "../models/Task.js";
+import User from "../models/User.js";
 
 export const getAnalytics = async (req, res, next) => {
   try {
-    const taskQuery = req.user.role === "admin" ? {} : { assignedTo: req.user._id };
-    const employeeQuery = { role: "employee" };
-    const [employees, tasks, attendance, leaves] = await Promise.all([
-      User.countDocuments(employeeQuery),
-      Task.find(taskQuery),
-      Attendance.find(req.user.role === "admin" ? {} : { employee: req.user._id }),
-      Leave.find(req.user.role === "admin" ? {} : { employee: req.user._id }),
+    const isAdmin = req.user.role === "admin";
+    const taskMatch = isAdmin ? {} : { assignedTo: req.user._id };
+    const attendanceMatch = isAdmin ? {} : { employee: req.user._id };
+    const leaveMatch = isAdmin ? {} : { employee: req.user._id };
+
+    // Run all aggregations in parallel for speed
+    const [
+      employeeCount,
+      taskAgg,
+      attendanceAgg,
+      leaveAgg,
+      taskProgressAgg,
+      monthlyAttendanceAgg,
+      taskTrendAgg,
+    ] = await Promise.all([
+      // Total active employees
+      User.countDocuments({ role: "employee", status: "active" }),
+
+      // Task counts by status
+      Task.aggregate([
+        { $match: taskMatch },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+
+      // Attendance counts by status
+      Attendance.aggregate([
+        { $match: attendanceMatch },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+
+      // Leave counts by status
+      Leave.aggregate([
+        { $match: leaveMatch },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+
+      // Average task progress
+      Task.aggregate([
+        { $match: taskMatch },
+        { $group: { _id: null, total: { $sum: 1 }, avgProgress: { $avg: "$progress" } } },
+      ]),
+
+      // Monthly attendance percentage (current month)
+      (() => {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        return Attendance.aggregate([
+          { $match: { ...attendanceMatch, date: { $gte: monthStart, $lt: monthEnd } } },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: 1 },
+              present: {
+                $sum: { $cond: [{ $in: ["$status", ["Present", "Remote", "Half Day"]] }, 1, 0] },
+              },
+            },
+          },
+        ]);
+      })(),
+
+      // Task completion trend — last 6 months
+      Task.aggregate([
+        {
+          $match: {
+            ...taskMatch,
+            status: "Completed",
+            updatedAt: {
+              $gte: new Date(new Date().setMonth(new Date().getMonth() - 5)),
+            },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$updatedAt" },
+              month: { $month: "$updatedAt" },
+            },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { "_id.year": 1, "_id.month": 1 } },
+      ]),
     ]);
+
+    // --- Shape aggregation results into response format ---
+
+    const toMap = (agg) => Object.fromEntries(agg.map((g) => [g._id, g.count]));
+
+    const taskMap = toMap(taskAgg);
+    const attendanceMap = toMap(attendanceAgg);
+    const leaveMap = toMap(leaveAgg);
 
     const statusCounts = ["New", "Active", "Completed", "Failed"].map((status) => ({
       name: status,
-      value: tasks.filter((task) => task.status === status).length,
+      value: taskMap[status] || 0,
     }));
-    const priorityCounts = ["Low", "Medium", "High"].map((priority) => ({
-      name: priority,
-      value: tasks.filter((task) => task.priority === priority).length,
+    const priorityAgg = await Task.aggregate([
+      { $match: taskMatch },
+      { $group: { _id: "$priority", count: { $sum: 1 } } },
+    ]);
+    const priorityMap = toMap(priorityAgg);
+    const priorityCounts = ["Low", "Medium", "High"].map((p) => ({
+      name: p,
+      value: priorityMap[p] || 0,
     }));
     const attendanceCounts = ["Present", "Absent", "Half Day", "Remote"].map((status) => ({
       name: status,
-      value: attendance.filter((record) => record.status === status).length,
+      value: attendanceMap[status] || 0,
     }));
     const leaveCounts = ["Pending", "Approved", "Rejected"].map((status) => ({
       name: status,
-      value: leaves.filter((leave) => leave.status === status).length,
+      value: leaveMap[status] || 0,
     }));
-    const monthlyAttendance = attendance.filter((record) => {
-      const now = new Date();
-      const date = new Date(record.date);
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-    });
-    const attendancePercentage = monthlyAttendance.length
-      ? Math.round((monthlyAttendance.filter((item) => ["Present", "Remote", "Half Day"].includes(item.status)).length / monthlyAttendance.length) * 100)
+
+    const totalTasks = taskProgressAgg[0]?.total || 0;
+    const averageProgress = totalTasks
+      ? Math.round(taskProgressAgg[0]?.avgProgress || 0)
       : 0;
-    const taskTrend = Array.from({ length: 6 }, (_, index) => {
-      const month = new Date(); month.setMonth(month.getMonth() - (5 - index));
+
+    const monthly = monthlyAttendanceAgg[0];
+    const monthlyAttendancePercentage = monthly?.total
+      ? Math.round((monthly.present / monthly.total) * 100)
+      : 0;
+
+    // Build 6-month trend, filling in zeros for months with no completions
+    const trendMap = {};
+    for (const entry of taskTrendAgg) {
+      trendMap[`${entry._id.year}-${entry._id.month}`] = entry.count;
+    }
+    const taskTrend = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (5 - i));
+      const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
       return {
-        name: month.toLocaleString("en", { month: "short" }),
-        value: tasks.filter((task) => task.status === "Completed" && new Date(task.updatedAt).getMonth() === month.getMonth() && new Date(task.updatedAt).getFullYear() === month.getFullYear()).length,
+        name: d.toLocaleString("en", { month: "short" }),
+        value: trendMap[key] || 0,
       };
     });
 
+    const totalAttendance = Object.values(attendanceMap).reduce((s, v) => s + v, 0);
+    const totalLeaves = Object.values(leaveMap).reduce((s, v) => s + v, 0);
+
     res.json({
       totals: {
-        employees,
-        tasks: tasks.length,
-        attendance: attendance.length,
-        leaves: leaves.length,
-        averageProgress: tasks.length ? Math.round(tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length) : 0,
-        monthlyAttendancePercentage: attendancePercentage,
+        employees: employeeCount,
+        tasks: totalTasks,
+        attendance: totalAttendance,
+        leaves: totalLeaves,
+        averageProgress,
+        monthlyAttendancePercentage,
       },
       statusCounts,
       priorityCounts,

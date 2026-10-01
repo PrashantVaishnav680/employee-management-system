@@ -4,30 +4,29 @@ EMS WorkPulse is a Full Stack Employee Management System built using the MERN St
 
 ## ✨ Features
 
-- 🔐 JWT Authentication
-- 👥 Employee Management
-- 📅 Attendance Management
-- ✅ Task Management
-- 📝 Leave Management
-- 📊 Dashboard
-- 📜 Activity Logs
-- 👤 Profile Management
+- 🔐 JWT Authentication with session rotation (one valid session per user at a time)
+- 👥 Employee Management (Admin only)
+- 📅 Attendance Management with bulk submit and lock
+- ✅ Task Management with priority and progress tracking
+- 📝 Leave Management with approval workflow
+- 📊 Dashboard Analytics (MongoDB aggregation pipelines)
+- 📜 Activity Logs (Admin only)
+- 👤 Profile Management & Login History
+- 🔔 In-app Notifications
 
 ## 🛠️ Tech Stack
 
 **Frontend**
-- React.js
-- Vite
-- Tailwind CSS
-- Axios
+- React 19 + Vite 8
+- Tailwind CSS 4
+- Axios + React Hook Form + Zod
+- Framer Motion + Recharts
 
 **Backend**
-- Node.js
-- Express.js
-- MongoDB
-- Mongoose
-- JWT
-- bcryptjs
+- Node.js + Express 5
+- MongoDB + Mongoose
+- JWT (HttpOnly cookie — no localStorage exposure)
+- bcryptjs, helmet, express-rate-limit
 
 ## 📦 Installation
 
@@ -38,31 +37,44 @@ git clone https://github.com/your-username/EMS-WorkPulse.git
 cd EMS-WorkPulse
 ```
 
-### Backend
+### Install dependencies (single install — monorepo)
 
 ```bash
-cd server
 npm install
-npm run dev
 ```
 
-### Frontend
+### Set up environment variables
+
+Copy `.env.example` to `.env` and fill in your values:
 
 ```bash
-cd client
-npm install
-npm run dev
+cp .env.example .env
+```
+
+### Run in development
+
+```bash
+# Run both frontend (Vite) and backend (Express) together:
+npm run dev:full
+
+# Or run separately:
+npm run server:dev   # backend with live reload
+npm run dev          # frontend (Vite)
 ```
 
 ## 🔑 Environment Variables
 
-Create a `.env` file inside the `server` folder.
+See `.env.example` for the full list. Key variables:
 
 ```env
-PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_secret_key
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_long_random_secret
+SEED_ADMIN_EMAIL=admin@ems.com
+SEED_ADMIN_PASSWORD=YourAdminPassword
+SEED_EMPLOYEE_PASSWORD=YourEmployeePassword
 ```
+
+> **Note:** Seed credentials are only used on the very first run when the database is empty. Set them in `.env` — never commit real passwords to source control.
 
 ## 🌟 Future Improvements
 
@@ -70,14 +82,8 @@ JWT_SECRET=your_secret_key
 - Email Notifications
 - OTP Password Reset
 - PDF/Excel Reports
-- Employee Documents
-
-## Admin and Employee Data for login
-admin: Prashant@ems.com 
-pass : Admin@123
-# 1 emp
-emp  : Viransh@ems.com    
-pass : Viransh@123
+- Employee Documents (Cloudinary already wired)
+- Avatar upload
 
 ## 👨‍💻 Author
 

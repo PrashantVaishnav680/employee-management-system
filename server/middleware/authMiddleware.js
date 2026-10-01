@@ -3,10 +3,10 @@ import User from "../models/User.js";
 
 export const protect = async (req, res, next) => {
   try {
-    const headerToken = req.headers.authorization?.startsWith("Bearer ")
-      ? req.headers.authorization.split(" ")[1]
-      : null;
-    const token = req.cookies?.token || headerToken;
+    // Token is ONLY accepted from the HttpOnly cookie.
+    // We no longer accept Authorization: Bearer header to prevent
+    // sharing tokens copied from localStorage between multiple users.
+    const token = req.cookies?.token;
 
     if (!token) {
       res.status(401);
@@ -16,7 +16,15 @@ export const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select("-password +sessionId");
 
-    if (!user || user.status !== "active" || !decoded.sessionId || user.sessionId !== decoded.sessionId) {
+    // Verify user exists, is active, and session ID matches what's in DB.
+    // This ensures only the MOST RECENT login session is valid — logging in
+    // from a new device invalidates all previous sessions.
+    if (
+      !user ||
+      user.status !== "active" ||
+      !decoded.sessionId ||
+      user.sessionId !== decoded.sessionId
+    ) {
       res.status(401);
       throw new Error("Your session has expired or was signed in elsewhere");
     }
